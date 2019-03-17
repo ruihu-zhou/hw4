@@ -1,0 +1,235 @@
+q1%%%%%%%%%%%%%%%%%%%%%%%%
+datas1 = imread("test2.bmp");
+ figure
+ subplot(2,4,1);
+  imshow(datas1);
+ title("source iamge");
+  subplot(2,4,5);
+  imshow(datas1);
+ title("source iamge");
+ 
+for i = 3:2:7
+    mask = gaussian(i,1.5);
+    [data,data1] = filter1(mask,datas1);
+    subplot(2,4,(i + 1) / 2); 
+    imshow(data);
+     title(sprintf(" filter %d * %d",i,i));
+     subplot(2,4,(i + 1) / 2 + 4); 
+    imshow(data1);
+    title(sprintf("Medain %d * %d",i,i));
+end
+
+
+function [dataa1,dataa3] = filter1(mask,datas)
+%UNTITLED6 此处显示有关此函数的摘要
+%   此处显示详细说
+[MM,NN] = size(mask);
+dim = (MM - 1) / 2;
+[M N] = size(datas);
+
+mask1 = zeros(M + MM - 1, N + NN - 1);
+mask1( 1 + dim:M + dim,1 + dim:N + dim) = double(datas);
+
+mask1(1 + dim:M + dim,1:dim) = datas(:,1:dim);
+mask1(1 + dim:M + dim,N + dim + 1: N + NN - 1) = datas(:,N - dim + 1:N);
+
+mask1(1:dim,1 + dim:N + dim) = datas(1:dim,:);
+mask1(N + dim + 1:N + NN - 1,1 + dim:N + dim) = datas(M - dim + 1:M,:);
+
+
+for  i = 1 + dim:M + dim
+    for j = 1 + dim:N + dim
+        temp = (mask1(i - dim:i + dim,j - dim:j + dim) .* mask);
+        dataa (i,j) = sum(temp(:));
+        dataa2 (i,j) = median(median(mask1(i - dim:i + dim,j - dim:j + dim),2),1);
+    end
+end
+
+dataa1 = ((dataa( 1 + dim:M + dim,1 + dim:N + dim)));
+dataa3 = ((dataa2( 1 + dim:M + dim,1 + dim:N + dim)));
+end
+
+function [gaussian1] = gaussian(dim,sigma)
+%UNTITLED5 此处显示有关此函数的摘要
+%   此处显示详细说明
+for i = 1:dim
+    for j = 1:dim
+        temp = (i - (dim + 1) / 2 ).^2 + (j - (dim + 1) / 2 ).^2;
+        gaussian1(i,j) = exp( -temp/2/(sigma^2));
+    end
+end
+
+ a = sum(sum(gaussian1,1),2);
+ gaussian1 = gaussian1 / a;
+
+end
+
+q2%%%%%%%%%%%%%%%%%%%%%%%%
+
+datas = imread("test4 copy.bmp");
+% datas = imread("test3.bmp");
+Laplace = [0 -1 0;-1 4 -1;0 -1 0];
+sobely = [-1 0 1;-2 0 2;-1 0 1];
+sobelx = [1 2 1;0 0 0;-1 -2 -1];
+figure
+subplot(2,4,1);
+imshow(datas);
+title("source image");
+
+    mask = gaussian(5,1.5);
+    [data,~] = filter1(mask,datas);
+    data = datas - uint8(data);
+ 
+     subplot(2,4,5);
+    imshow(uint8(data + datas));
+    title("5 * 5unsharp mask");
+    
+    mask = gaussian(5,0.8);
+    [data11,~] = filter1(mask,datas);
+    [data1,~] = filter1(sobelx,data11);
+    [data2,~] = filter1(sobely,data11);
+    data3 = sqrt(data1.^2 + data2.^2);
+    subplot(2,4,6);
+    [M N]= size(data3);
+    tt = max(data3) * 0.2;
+    for i = 1:M
+        for j = 1:N
+            if(data3(i,j) > tt)
+                data3(i,j) = 255;
+            else
+                data3(i,j) = 0;
+            end
+        end
+    end
+    imshow((abs(data3)));
+    title("sobel");
+    [data,~] = filter1(Laplace,data11);
+    subplot(2,4,7);
+    tt = max(data) * 0.1;
+    for i = 1:M
+        for j = 1:N
+            if(data(i,j) > tt)
+                data(i,j) = 255;
+            else
+                data(i,j) = 0;
+            end
+        end
+    end
+    imshow(uint8(data));
+    title("laplace");
+    canny(datas);
+    
+    subplot(2,4,2);
+    edge(datas,'sobel');
+    title("sobel");
+    subplot(2,4,3);
+    edge(datas,'log');
+     title("log");
+    subplot(2,4,4);
+    edge(datas,'canny');
+     title("canny");
+    
+
+function [data4] = canny(datas)
+%UNTITLED 此处显示有关此函数的摘要
+%   此处显示详细说明
+
+sobely = [-1 0 1;-2 0 2;-1 0 1];
+sobelx = [1 2 1;0 0 0;-1 -2 -1];
+    mask = gaussian(5,0.8);
+    [datas,~] = filter1(mask,datas);
+    [data1,~] = filter1(sobelx,datas);
+    [data2,~] = filter1(sobely,datas);
+    [M,N] = size(data1);
+    data = zeros(M + 2,N + 2);
+    data(2:M + 1,2:N + 1) = data1;
+    data1 = data;
+    data(2:M + 1,2:N + 1) = data2;
+    data2 = data;
+    
+    data3 = zeros(M + 2,N + 2);
+    data4 = zeros(M + 2,N + 2);
+    
+    for i = 2:M + 1
+        for j = 2:N + 1
+            data3(i,j) = complex(data1(i,j),data2(i,j));
+        end
+    end
+    
+    for i = 2:M + 1
+        for j = 2:N + 1
+            if (real(data3(i,j)) < 0)
+                data3(i,j) = - data3(i,j);
+            end
+            if (0 <= angle(data3(i,j)) && angle(data3(i,j)) <= pi / 4)
+               
+                
+                ta = tan(angle(data3(i,j)));
+                gp1 =  (1 - ta) * abs(data3(i +  1,j)) + ta * abs(data3(i + 1,j + 1));
+                gp2 =  (1 - ta) * abs(data3(i - 1,j)) + ta * abs(data3(i - 1,j - 1));
+            elseif(pi/ 4 < angle(data3(i,j)) && angle(data3(i,j)) <= pi / 2)
+                ta = tan(pi / 2 - angle(data3(i,j)));
+                 gp1 =  (1 - ta) * abs(data3(i,j + 1)) + ta * abs(data3(i + 1,j + 1));
+                gp2 =  (1 - ta) * abs(data3(i,j - 1)) + ta * abs(data3(i - 1,j - 1));
+                
+             elseif(-pi/ 4 < angle(data3(i,j)) && angle(data3(i,j)) < 0)
+                 ta = tan( - angle(data3(i,j)));
+                gp1 =  (1 - ta) * abs(data3(i - 1,j)) + ta * abs(data3(i - 1,j + 1));
+                gp2 =  (1 - ta) * abs(data3(i + 1,j)) + ta * abs(data3(i + 1,j - 1));
+                
+                elseif(-pi/ 2 <= angle(data3(i,j)) && angle(data3(i,j)) < - pi / 4)
+                 
+                ta = tan(pi / 2  + angle(data3(i,j)));
+                gp1 =  (1 - ta) * abs(data3(i,j + 1)) + ta * abs(data3(i - 1,j + 1));
+                gp2 =  (1 - ta) * abs(data3(i,j - 1)) + ta * abs(data3(i + 1,j - 1));
+            end
+            
+            if (abs(data3(i,j)) >= abs(gp1) && abs(data3(i,j)) >= abs(gp2))
+                data3(i,j) = data3(i,j);
+            else
+                data3(i,j) = 0;
+            end
+            
+        end
+    end
+    
+    data3 = abs(data3);
+    thresoldh = max(data3(:)) * 0.1;
+    thresoldl = max(data3(:)) * 0.04;
+    
+    
+    for i = 2:M + 1
+        for j = 2:N + 1
+            if (data3(i,j) >= thresoldh)
+                data4(i,j) = 1;
+            elseif(data3(i,j) >= thresoldl)
+                data4(i,j) = 0;
+            else
+                data4(i,j) = -1;
+            end
+        end
+    end
+    
+    for i = 2:M + 1
+        for j = 2:N + 1
+            if (data4(i,j) >= 0)
+                t = data4(i-1:i+1,j-1:j+1);
+                if (max(max(t,[],2),[],1) == 1)
+                data5(i,j) = 1;
+                end
+            else
+                data5(i,j) = 0;
+            end
+        end
+    end
+
+    subplot(2,4,8);
+    imshow(data5);
+    title("canny");
+  
+    
+end
+
+
+
+
